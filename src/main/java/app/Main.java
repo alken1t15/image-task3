@@ -1,13 +1,8 @@
 package app;
 
-import filter.Convolution;
-import filter.Kernel;
-import filter.Kernels;
-import filter.MedianFilter;
+import filter.ImageFilters;
 import image.ColorImage;
 import image.ImageUtils;
-import parallel.ParallelConvolution;
-import parallel.ParallelMedianFilter;
 import parallel.ParallelStrategy;
 
 import java.io.IOException;
@@ -67,7 +62,7 @@ public class Main {
         ColorImage input = ImageUtils.loadColor(inputPath);
 
         long start = System.nanoTime();
-        ColorImage output = applyFilter(input, filterName);
+        ColorImage output = ImageFilters.apply(input, filterName);
         long elapsed = System.nanoTime() - start;
 
         ImageUtils.saveColor(output, outputPath);
@@ -86,7 +81,7 @@ public class Main {
         ColorImage input = ImageUtils.loadColor(inputPath);
 
         long start = System.nanoTime();
-        ColorImage output = applyFilterParallel(input, filterName, strategy, threads);
+        ColorImage output = ImageFilters.applyParallel(input, filterName, strategy, threads);
         long elapsed = System.nanoTime() - start;
 
         ImageUtils.saveColor(output, outputPath);
@@ -107,7 +102,7 @@ public class Main {
             // checksum заставляет JVM реально использовать результат фильтра,
             // чтобы замер не превратился в бесполезный цикл.
             long start = System.nanoTime();
-            ColorImage out = applyFilter(input, filterName);
+            ColorImage out = ImageFilters.apply(input, filterName);
             long elapsed = System.nanoTime() - start;
 
             total += elapsed;
@@ -131,7 +126,7 @@ public class Main {
 
         for (int i = 0; i < iterations; i++) {
             long start = System.nanoTime();
-            ColorImage out = applyFilterParallel(input, filterName, strategy, threads);
+            ColorImage out = ImageFilters.applyParallel(input, filterName, strategy, threads);
             long elapsed = System.nanoTime() - start;
 
             total += elapsed;
@@ -145,44 +140,6 @@ public class Main {
                 filterName, strategy.name().toLowerCase(Locale.ROOT), threads,
                 input.width, input.height, iterations, avgNs / 1_000_000.0,
                 throughput(input, (long) avgNs), checksum);
-    }
-
-    private static ColorImage applyFilter(ColorImage input, String filterName) {
-        String name = filterName.toLowerCase(Locale.ROOT);
-        if (name.startsWith("median")) {
-            // Median filter не задаётся ядром свёртки, поэтому обрабатываю его
-            // отдельной веткой.
-            return MedianFilter.apply(input, parseMedianWindowSize(name));
-        }
-
-        Kernel kernel = Kernels.byName(name);
-        return Convolution.apply(input, kernel);
-    }
-
-    private static ColorImage applyFilterParallel(
-            ColorImage input,
-            String filterName,
-            ParallelStrategy strategy,
-            int threads
-    ) {
-        String name = filterName.toLowerCase(Locale.ROOT);
-        if (name.startsWith("median")) {
-            return ParallelMedianFilter.apply(input, parseMedianWindowSize(name), strategy, threads);
-        }
-
-        Kernel kernel = Kernels.byName(name);
-        return ParallelConvolution.apply(input, kernel, strategy, threads);
-    }
-
-    private static int parseMedianWindowSize(String name) {
-        return switch (name) {
-            case "median3" -> 3;
-            case "median5" -> 5;
-            case "median7" -> 7;
-            default -> throw new IllegalArgumentException(
-                    "Unknown median filter: " + name + ". Supported: median3, median5, median7"
-            );
-        };
     }
 
     private static void printDone(String filterName, ColorImage input, long elapsed) {
