@@ -1,0 +1,7 @@
+mode,workers,queue,inner_strategy,inner_threads,iterations,avg_ms,files,avg_ms_per_file
+sequential,1,2,none,1,3,294.519,12,24.543
+sequential,2,2,none,1,3,302.348,12,25.196
+sequential,4,2,none,1,3,262.622,12,21.885
+parallel,1,2,grid,4,3,180.468,12,15.039
+parallel,2,2,grid,2,3,184.917,12,15.410
+parallel,4,2,grid,1,3,191.569,12,15.964

@@ -1,16 +1,15 @@
 package app;
 
-import filter.Convolution;
-import filter.Kernel;
-import filter.Kernels;
-import filter.MedianFilter;
+import filter.ImageFilters;
 import image.ColorImage;
 import image.ImageUtils;
-import parallel.ParallelConvolution;
-import parallel.ParallelMedianFilter;
 import parallel.ParallelStrategy;
+import pipeline.BatchConfig;
+import pipeline.BatchResult;
+import pipeline.PipelineImageProcessor;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Locale;
 
 public class Main {
@@ -57,6 +56,22 @@ public class Main {
                 ParallelStrategy strategy = ParallelStrategy.parse(args[3]);
                 benchmarkParallel(args[1], args[2], strategy, Integer.parseInt(args[4]), Integer.parseInt(args[5]));
             }
+            case "apply-batch" -> {
+                if (args.length != 7 && args.length != 9) {
+                    printUsage();
+                    return;
+                }
+                BatchConfig config = parseBatchConfig(args, 4);
+                applyBatch(args[1], args[2], args[3], config);
+            }
+            case "benchmark-batch" -> {
+                if (args.length != 8 && args.length != 10) {
+                    printUsage();
+                    return;
+                }
+                BatchConfig config = parseBatchConfig(args, 4);
+                benchmarkBatch(args[1], args[2], args[3], config, Integer.parseInt(args[args.length - 1]));
+            }
             default -> printUsage();
         }
     }
@@ -67,7 +82,7 @@ public class Main {
         ColorImage input = ImageUtils.loadColor(inputPath);
 
         long start = System.nanoTime();
-        ColorImage output = applyFilter(input, filterName);
+        ColorImage output = ImageFilters.apply(input, filterName);
         long elapsed = System.nanoTime() - start;
 
         ImageUtils.saveColor(output, outputPath);
@@ -86,7 +101,7 @@ public class Main {
         ColorImage input = ImageUtils.loadColor(inputPath);
 
         long start = System.nanoTime();
-        ColorImage output = applyFilterParallel(input, filterName, strategy, threads);
+        ColorImage output = ImageFilters.applyParallel(input, filterName, strategy, threads);
         long elapsed = System.nanoTime() - start;
 
         ImageUtils.saveColor(output, outputPath);
@@ -107,7 +122,7 @@ public class Main {
             // checksum заставляет JVM реально использовать результат фильтра,
             // чтобы замер не превратился в бесполезный цикл.
             long start = System.nanoTime();
-            ColorImage out = applyFilter(input, filterName);
+            ColorImage out = ImageFilters.apply(input, filterName);
             long elapsed = System.nanoTime() - start;
 
             total += elapsed;
@@ -131,7 +146,7 @@ public class Main {
 
         for (int i = 0; i < iterations; i++) {
             long start = System.nanoTime();
-            ColorImage out = applyFilterParallel(input, filterName, strategy, threads);
+            ColorImage out = ImageFilters.applyParallel(input, filterName, strategy, threads);
             long elapsed = System.nanoTime() - start;
 
             total += elapsed;
@@ -147,41 +162,71 @@ public class Main {
                 throughput(input, (long) avgNs), checksum);
     }
 
-    private static ColorImage applyFilter(ColorImage input, String filterName) {
-        String name = filterName.toLowerCase(Locale.ROOT);
-        if (name.startsWith("median")) {
-            // Median filter не задаётся ядром свёртки, поэтому обрабатываю его
-            // отдельной веткой.
-            return MedianFilter.apply(input, parseMedianWindowSize(name));
-        }
-
-        Kernel kernel = Kernels.byName(name);
-        return Convolution.apply(input, kernel);
-    }
-
-    private static ColorImage applyFilterParallel(
-            ColorImage input,
+    private static void applyBatch(
+            String inputDirectory,
+            String outputDirectory,
             String filterName,
-            ParallelStrategy strategy,
-            int threads
-    ) {
-        String name = filterName.toLowerCase(Locale.ROOT);
-        if (name.startsWith("median")) {
-            return ParallelMedianFilter.apply(input, parseMedianWindowSize(name), strategy, threads);
-        }
-
-        Kernel kernel = Kernels.byName(name);
-        return ParallelConvolution.apply(input, kernel, strategy, threads);
+            BatchConfig config
+    ) throws IOException {
+        PipelineImageProcessor processor = new PipelineImageProcessor();
+        BatchResult result = processor.processDirectory(
+                Path.of(inputDirectory),
+                Path.of(outputDirectory),
+                filterName,
+                config
+        );
+        printBatchResult("Done", filterName, config, result);
     }
 
-    private static int parseMedianWindowSize(String name) {
-        return switch (name) {
-            case "median3" -> 3;
-            case "median5" -> 5;
-            case "median7" -> 7;
-            default -> throw new IllegalArgumentException(
-                    "Unknown median filter: " + name + ". Supported: median3, median5, median7"
+    private static void benchmarkBatch(
+            String inputDirectory,
+            String outputDirectory,
+            String filterName,
+            BatchConfig config,
+            int iterations
+    ) throws IOException {
+        PipelineImageProcessor processor = new PipelineImageProcessor();
+        long total = 0;
+        int files = 0;
+
+        for (int i = 0; i < iterations; i++) {
+            BatchResult result = processor.processDirectory(
+                    Path.of(inputDirectory),
+                    Path.of(outputDirectory),
+                    filterName,
+                    config
             );
+            total += result.totalNanos();
+            files = result.files();
+            printBatchResult("Run " + (i + 1), filterName, config, result);
+        }
+
+        double avgMs = total / (double) iterations / 1_000_000.0;
+        System.out.printf(Locale.US,
+                "Average: filter=%s, files=%d, workers=%d, queue=%d, mode=%s, iterations=%d, avg=%.3f ms%n",
+                filterName, files, config.convolutionWorkers(), config.queueCapacity(),
+                batchMode(config), iterations, avgMs);
+    }
+
+    private static BatchConfig parseBatchConfig(String[] args, int offset) {
+        int workers = Integer.parseInt(args[offset]);
+        int queueCapacity = Integer.parseInt(args[offset + 1]);
+        String mode = args[offset + 2].toLowerCase(Locale.ROOT);
+
+        return switch (mode) {
+            case "sequential" -> BatchConfig.sequentialWorkers(workers, queueCapacity);
+            case "parallel" -> {
+                if (args.length < offset + 5) {
+                    throw new IllegalArgumentException("Parallel batch mode requires strategy and convolutionThreads");
+                }
+                yield BatchConfig.parallelWorkers(
+                        workers,
+                        queueCapacity,
+                        ParallelStrategy.parse(args[offset + 3]),
+                        Integer.parseInt(args[offset + 4])
+                );
+            }
+            default -> throw new IllegalArgumentException("Unknown batch mode: " + mode);
         };
     }
 
@@ -204,6 +249,29 @@ public class Main {
         return mpix / (elapsedNs / 1_000_000_000.0);
     }
 
+    private static void printBatchResult(String prefix, String filterName, BatchConfig config, BatchResult result) {
+        System.out.printf(Locale.US,
+                "%s. Filter=%s, files=%d, workers=%d, queue=%d, mode=%s, total=%.3f ms, read=%.3f ms, convolution=%.3f ms, write=%.3f ms, avg=%.3f ms/file%n",
+                prefix,
+                filterName,
+                result.files(),
+                config.convolutionWorkers(),
+                config.queueCapacity(),
+                batchMode(config),
+                result.totalMillis(),
+                result.readNanos() / 1_000_000.0,
+                result.convolutionNanos() / 1_000_000.0,
+                result.writeNanos() / 1_000_000.0,
+                result.averageMillisPerFile());
+    }
+
+    private static String batchMode(BatchConfig config) {
+        if (!config.parallelConvolution()) {
+            return "sequential";
+        }
+        return "parallel/" + config.strategy().name().toLowerCase(Locale.ROOT) + "/" + config.convolutionThreads();
+    }
+
     private static void printUsage() {
         System.out.println("""
             Usage:
@@ -211,6 +279,8 @@ public class Main {
               java Main benchmark <input> <filterName> <iterations>
               java Main apply-parallel <input> <output> <filterName> <strategy> <threads>
               java Main benchmark-parallel <input> <filterName> <strategy> <threads> <iterations>
+              java Main apply-batch <inputDir> <outputDir> <filterName> <workers> <queueCapacity> <sequential|parallel> [strategy] [convolutionThreads]
+              java Main benchmark-batch <inputDir> <outputDir> <filterName> <workers> <queueCapacity> <sequential|parallel> [strategy] [convolutionThreads] <iterations>
 
             Parallel strategies:
               pixels
