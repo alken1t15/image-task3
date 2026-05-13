@@ -1,44 +1,29 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="760" height="360" viewBox="0 0 760 360">
-  <rect width="760" height="360" fill="#ffffff"/>
-  <text x="36" y="34" font-family="Arial, sans-serif" font-size="18" fill="#222">Batch pipeline, gaussian5, 12 x 256x256 PNG</text>
-  <line x1="90" y1="300" x2="720" y2="300" stroke="#333"/>
-  <line x1="90" y1="60" x2="90" y2="300" stroke="#333"/>
-  <g font-family="Arial, sans-serif" font-size="12" fill="#444">
-    <text x="60" y="304">0</text>
-    <text x="48" y="264">50</text>
-    <text x="42" y="224">100</text>
-    <text x="42" y="184">150</text>
-    <text x="42" y="144">200</text>
-    <text x="42" y="104">250</text>
-    <text x="42" y="64">300</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="540" viewBox="0 0 1100 540">
+  <rect width="1100" height="540" fill="#ffffff"/>
+  <text x="550" y="34" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="700">Потоковая обработка: баланс рабочих и внутренних потоков</text>
+  <text x="550" y="58" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#555">Фильтр gaussian5, 4 изображения, 12 повторов на сценарий</text>
+  <line x1="88" y1="420" x2="1040" y2="420" stroke="#222"/>
+  <line x1="88" y1="80" x2="88" y2="420" stroke="#222"/>
+  <g font-family="Arial, sans-serif" font-size="12" fill="#555">
+    <line x1="82" y1="420" x2="1040" y2="420" stroke="#ddd"/><text x="74" y="424" text-anchor="end">0</text>
+    <line x1="82" y1="338" x2="1040" y2="338" stroke="#ddd"/><text x="74" y="342" text-anchor="end">500</text>
+    <line x1="82" y1="257" x2="1040" y2="257" stroke="#ddd"/><text x="74" y="261" text-anchor="end">1000</text>
+    <line x1="82" y1="175" x2="1040" y2="175" stroke="#ddd"/><text x="74" y="179" text-anchor="end">1500</text>
+    <line x1="82" y1="93" x2="1040" y2="93" stroke="#ddd"/><text x="74" y="97" text-anchor="end">2000</text>
+    <text x="26" y="250" transform="rotate(-90 26 250)" text-anchor="middle">миллисекунды</text>
   </g>
-  <g stroke="#d6d6d6" stroke-width="1">
-    <line x1="90" y1="260" x2="720" y2="260"/>
-    <line x1="90" y1="220" x2="720" y2="220"/>
-    <line x1="90" y1="180" x2="720" y2="180"/>
-    <line x1="90" y1="140" x2="720" y2="140"/>
-    <line x1="90" y1="100" x2="720" y2="100"/>
-    <line x1="90" y1="60" x2="720" y2="60"/>
+  <g font-family="Arial, sans-serif" font-size="12">
+    <rect x="120" y="151" width="62" height="269" fill="#4e79a7"/><text x="151" y="143" text-anchor="middle">1646</text><text x="151" y="442" text-anchor="middle">посл. 1</text>
+    <rect x="230" y="155" width="62" height="265" fill="#4e79a7"/><text x="261" y="147" text-anchor="middle">1620</text><text x="261" y="442" text-anchor="middle">посл. 2</text>
+    <rect x="340" y="157" width="62" height="263" fill="#4e79a7"/><text x="371" y="149" text-anchor="middle">1609</text><text x="371" y="442" text-anchor="middle">посл. 4</text>
+    <rect x="450" y="98" width="62" height="322" fill="#4e79a7"/><text x="481" y="90" text-anchor="middle">1972</text><text x="481" y="442" text-anchor="middle">посл. 8</text>
+    <rect x="585" y="256" width="62" height="164" fill="#59a14f"/><text x="616" y="248" text-anchor="middle">1006</text><text x="616" y="442" text-anchor="middle">1x8</text>
+    <rect x="695" y="242" width="62" height="178" fill="#59a14f"/><text x="726" y="234" text-anchor="middle">1091</text><text x="726" y="442" text-anchor="middle">2x4</text>
+    <rect x="805" y="209" width="62" height="211" fill="#59a14f"/><text x="836" y="201" text-anchor="middle">1295</text><text x="836" y="442" text-anchor="middle">4x2</text>
+    <rect x="915" y="139" width="62" height="281" fill="#59a14f"/><text x="946" y="131" text-anchor="middle">1721</text><text x="946" y="442" text-anchor="middle">8x1</text>
   </g>
-  <g font-family="Arial, sans-serif" font-size="12" text-anchor="middle">
-    <rect x="115" y="64.4" width="70" height="235.6" fill="#4f83cc"/>
-    <text x="150" y="56" fill="#222">294.5</text>
-    <text x="150" y="322" fill="#222">seq 1</text>
-    <rect x="215" y="58.1" width="70" height="241.9" fill="#4f83cc"/>
-    <text x="250" y="50" fill="#222">302.3</text>
-    <text x="250" y="322" fill="#222">seq 2</text>
-    <rect x="315" y="89.9" width="70" height="210.1" fill="#4f83cc"/>
-    <text x="350" y="82" fill="#222">262.6</text>
-    <text x="350" y="322" fill="#222">seq 4</text>
-    <rect x="415" y="155.6" width="70" height="144.4" fill="#2f9d75"/>
-    <text x="450" y="148" fill="#222">180.5</text>
-    <text x="450" y="322" fill="#222">par 1x4</text>
-    <rect x="515" y="152.1" width="70" height="147.9" fill="#2f9d75"/>
-    <text x="550" y="144" fill="#222">184.9</text>
-    <text x="550" y="322" fill="#222">par 2x2</text>
-    <rect x="615" y="146.7" width="70" height="153.3" fill="#2f9d75"/>
-    <text x="650" y="139" fill="#222">191.6</text>
-    <text x="650" y="322" fill="#222">par 4x1</text>
+  <g font-family="Arial, sans-serif" font-size="13">
+    <rect x="365" y="490" width="16" height="16" fill="#4e79a7"/><text x="388" y="503">последовательная свёртка в рабочих</text>
+    <rect x="620" y="490" width="16" height="16" fill="#59a14f"/><text x="643" y="503">параллельная свёртка внутри рабочего</text>
   </g>
-  <text x="24" y="176" font-family="Arial, sans-serif" font-size="12" fill="#444" transform="rotate(-90 24 176)">average time, ms</text>
 </svg>
